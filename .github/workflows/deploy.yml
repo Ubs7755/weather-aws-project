@@ -1,0 +1,54 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-south-1
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build Docker image
+      run: |
+        docker build -t weather-app:latest ./app
+
+    - name: Tag and push to ECR
+      run: |
+        docker tag weather-app:latest ${{ secrets.ECR_REPOSITORY_URL }}:latest
+        docker tag weather-app:latest ${{ secrets.ECR_REPOSITORY_URL }}:${{ github.sha }}
+        docker push ${{ secrets.ECR_REPOSITORY_URL }}:latest
+        docker push ${{ secrets.ECR_REPOSITORY_URL }}:${{ github.sha }}
+
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ubuntu
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          aws ecr get-login-password --region ap-south-1 | sudo docker login --username AWS --password-stdin ${{ secrets.ECR_REPOSITORY_URL }}
+          sudo docker pull ${{ secrets.ECR_REPOSITORY_URL }}:latest
+          sudo docker stop weather-app || true
+          sudo docker rm weather-app || true
+          sudo docker run -d \
+            -p 5000:5000 \
+            -e WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }} \
+            --name weather-app \
+            --restart always \
+            ${{ secrets.ECR_REPOSITORY_URL }}:latest
