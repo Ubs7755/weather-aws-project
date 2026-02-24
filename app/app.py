@@ -57,7 +57,7 @@ HTML = '''
 </head>
 <body>
     <div class="card">
-        <h1>🌤️ Weather Dashboard</h1>
+        <h1>🌤️ Weather Dashboard - Auto Deployed!</h1>
         <form method="POST">
             <input name="city" placeholder="Enter city name eg. Pune" value="{{ city }}"/>
             <button type="submit">Search</button>
