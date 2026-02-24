@@ -1,0 +1,17 @@
+# Terraform
+terraform/.terraform/
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/.terraform.lock.hcl
+
+# Python
+__pycache__/
+*.pyc
+.env
+
+# AWS
+.aws/
+
+# OS
+.DS_Store
+Thumbs.db
